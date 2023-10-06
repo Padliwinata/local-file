@@ -1,29 +1,55 @@
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from starlette.responses import FileResponse
-import uvicorn
+import socket
 import os
 
-app = FastAPI()
+# Define the host and port to listen on
+HOST = '127.0.0.1'  # Listen on all available network interfaces
+PORT = 1000     # Use an available port number
 
-# Directory containing shared files
-shared_files_directory = "D:\proj\fastapi\local-file\soal"
+# Specify the directory to share
+SHARED_DIRECTORY = './soal'  # Replace with the actual directory path
 
-security = HTTPBasic()
+# Create a socket and bind it to the host and port
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((HOST, PORT))
 
-def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
-    # You can replace "your_username" and "your_password" with your desired username and password.
-    if credentials.username == "your_username" and credentials.password == "your_password":
-        return credentials
-    raise HTTPException(status_code=401, detail="Unauthorized")
+# Listen for incoming connections
+server_socket.listen(1)  # Allow only one client to connect at a time
 
-@app.get("/download/{filename}")
-async def download_file(filename: str, credentials: HTTPBasicCredentials = Depends(verify_credentials)):
-    file_path = os.path.join(shared_files_directory, filename)
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
-    else:
-        raise HTTPException(status_code=404, detail="File not found")
+print(f"Server is listening on {HOST}:{PORT}")
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8001)
+while True:
+    # Accept a client connection
+    client_socket, client_address = server_socket.accept()
+    print(f"Accepted connection from {client_address}")
+
+    try:
+        # Receive the requested filename from the client
+        filename = client_socket.recv(1024).decode('utf-8')
+
+        # Build the full path to the requested file
+        file_path = os.path.join(SHARED_DIRECTORY, filename)
+
+        # Check if the file exists
+        if os.path.isfile(file_path):
+            # Send the file size to the client
+            file_size = os.path.getsize(file_path)
+            client_socket.send(str(file_size).encode('utf-8'))
+
+            # Send the file contents in chunks
+            with open(file_path, 'rb') as file:
+                data = file.read(1024)
+                while data:
+                    client_socket.send(data)
+                    data = file.read(1024)
+
+            print(f"Sent '{filename}' to {client_address}")
+        else:
+            # If the file doesn't exist, send an error message
+            client_socket.send(b'File not found')
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+    finally:
+        # Close the client socket
+        client_socket.close()
