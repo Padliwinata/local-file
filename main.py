@@ -1,4 +1,4 @@
-from settings import *
+import os
 from fastapi import FastAPI, Depends, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -9,6 +9,7 @@ import random
 from pathlib import Path  # Import the pathlib module
 from enum import Enum
 import shutil
+from settings import *
 
 app = FastAPI()
 
@@ -35,12 +36,18 @@ scheduler.add_job(
 scheduler.start()
 
 class Matkul(str, Enum):
-    webpro = "webpro"
-    ppl = "ppl"
-    pbo = "pbo"
-    sister = "sister"
-    sisop = "sisop"
-    std = "std"
+    std_reg = 'std_reg'
+    std_int = 'std_int'
+    sister_reg = 'sister_reg'
+    sister_int = 'sister_int'
+    pbo_it = 'pbo_it'
+    pbo_if_reg = 'pbo_if_reg'
+    pbo_ds = 'pbo_df'
+    pbo_int = 'pbo_int'
+    webpro_it = 'webpro_it'
+    webpro_se = 'webpro_se'
+    ppl = 'ppl'
+    alpro = 'alpro'
 
 @app.get("/getcode/")
 async def get_current_code(password: SecretStr):
@@ -51,13 +58,15 @@ async def get_current_code(password: SecretStr):
 async def get_file(code: str, matkul: Matkul):
     try:
         # Check if the requested file exists in the upload directory
-        file_path = upload_dir / f'{matkul}.pdf'
+        files = os.listdir(upload_dir / matkul.value)
+        # file_path = files[0]
+        file_path = upload_dir / matkul.value / files[0]
         if not file_path.exists():
             return JSONResponse(content={"error": "File not found"}, status_code=404)
         
         # Check if the provided code matches the current code
         if code == current_code:
-            return FileResponse(file_path, headers={"Content-Disposition": f"attachment; filename=2304.08485.pdf"})
+            return FileResponse(file_path, headers={"Content-Disposition": f"attachment; filename={files[0]}"})
         else:
             return JSONResponse(content={"error": "Wrong code"}, status_code=400)
         
@@ -68,7 +77,9 @@ async def get_file(code: str, matkul: Matkul):
 async def get_file(code: str, matkul: str):
     try:
         # Check if the requested file exists in the upload directory
-        file_path = upload_dir / f'{matkul}.pdf'
+        files = os.listdir(upload_dir)
+        file_path = files[0]
+        # file_path = upload_dir / f'{matkul}.pdf'
         if not file_path.exists():
             return JSONResponse(content={"error": "File not found"}, status_code=404)
         
@@ -89,7 +100,8 @@ async def upload_file(password: SecretStr, file: UploadFile, matkul: Matkul):
             raise HTTPException(status_code=401, detail="Unauthorized")
 
         # Define the file path to save the uploaded file
-        file_path = upload_dir / f'{matkul}.pdf'
+        file_extension = file.filename.rsplit(".", 1)[-1]
+        file_path = upload_dir / matkul.value / f'{matkul}.{file_extension}'
 
         # Check if a file with the same name already exists and replace it
         if file_path.exists():
