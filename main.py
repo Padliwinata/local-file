@@ -105,7 +105,7 @@ async def upload_file(password: SecretStr, file: UploadFile, matkul: Matkul):
 
         # Define the file path to save the uploaded file
         file_extension = file.filename.rsplit(".", 1)[-1]
-        file_path = upload_dir / matkul.value / f'{matkul}.{file_extension}'
+        file_path = upload_dir / matkul.value / f'{matkul.value}.{file_extension}'
 
         # Check if a file with the same name already exists and replace it
         if file_path.exists():
