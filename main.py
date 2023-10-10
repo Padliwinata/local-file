@@ -17,7 +17,7 @@ app = FastAPI()
 upload_dir = Path("uploads")
 
 # Ensure the upload directory exists
-upload_dir.mkdir(parents=True, exist_ok=True)
+# upload_dir.mkdir(parents=True, exist_ok=True)
 
 # Generate a random code at startup
 current_code = str(random.randint(1000, 9999))
