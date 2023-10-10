@@ -1,3 +1,4 @@
+from settings import *
 from fastapi import FastAPI, Depends, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -43,7 +44,7 @@ class Matkul(str, Enum):
 
 @app.get("/getcode/")
 async def get_current_code(password: SecretStr):
-    if password.get_secret_value() == "passwordaslab":
+    if password.get_secret_value() == SECRET_KEY:
         return {"code": current_code}
 
 @app.post("/getfile/")
@@ -84,7 +85,7 @@ async def get_file(code: str, matkul: str):
 async def upload_file(password: SecretStr, file: UploadFile, matkul: Matkul):
     try:
         # Check if the provided password is correct
-        if password.get_secret_value() != "passwordaslab":  # Replace with your actual password
+        if password.get_secret_value() != SECRET_KEY:  # Replace with your actual password
             raise HTTPException(status_code=401, detail="Unauthorized")
 
         # Define the file path to save the uploaded file
