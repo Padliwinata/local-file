@@ -17,7 +17,8 @@ app = FastAPI()
 upload_dir = Path("uploads")
 
 # Ensure the upload directory exists
-# upload_dir.mkdir(parents=True, exist_ok=True)
+upload_dir.mkdir(parents=True, exist_ok=True)
+
 
 # Generate a random code at startup
 current_code = str(random.randint(1000, 9999))
@@ -48,6 +49,9 @@ class Matkul(str, Enum):
     webpro_se = 'webpro_se'
     ppl = 'ppl'
     alpro = 'alpro'
+
+for mat in Matkul:
+    Path(f'uploads/{mat}').mkdir(parents=True, exist_ok=True)
 
 @app.get("/getcode/")
 async def get_current_code(password: SecretStr):
