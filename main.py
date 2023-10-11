@@ -53,12 +53,46 @@ class Matkul(str, Enum):
 for mat in Matkul:
     Path(f'uploads/{mat}').mkdir(parents=True, exist_ok=True)
 
-@app.get("/getcode/")
-async def get_current_code(password: SecretStr):
-    if password.get_secret_value() == SECRET_KEY:
-        return {"code": current_code}
+def vigenere_encrypt(plaintext, key):
+    encrypted_text = ""
+    key_length = len(key)
 
-@app.post("/getfile/")
+    for i in range(len(plaintext)):
+        char = plaintext[i]
+        if char.isalpha():
+            key_char = key[i % key_length]
+            key_shift = ord(key_char.lower()) - ord('a')
+            if char.isupper():
+                encrypted_char = chr(((ord(char) - ord('A') + key_shift) % 26) + ord('A'))
+            else:
+                encrypted_char = chr(((ord(char) - ord('a') + key_shift) % 26) + ord('a'))
+        else:
+            encrypted_char = char
+        encrypted_text += encrypted_char
+
+    return encrypted_text
+
+def number_string_to_letters(number_string):
+    result = ""
+    for char in number_string:
+        if char.isdigit():
+            number = int(char)
+            if 1 <= number <= 26:
+                result += chr(ord('A') + number - 1)
+            else:
+                result += char
+        else:
+            result += char
+    return result
+
+
+@app.get("/getcode/")
+async def get_current_code(password: SecretStr, matkul: Matkul):
+    if password.get_secret_value() == SECRET_KEY:
+        encrypted_code = vigenere_encrypt(current_code, matkul.value)
+        return {"origin_code": current_code, "encrypted_code": encrypted_code}
+
+@app.get("/getfile/")
 async def get_file(code: str, matkul: Matkul):
     try:
         # Check if the requested file exists in the upload directory
@@ -70,7 +104,7 @@ async def get_file(code: str, matkul: Matkul):
         
         # Check if the provided code matches the current code
         if code == current_code:
-            return FileResponse(file_path, headers={"Content-Disposition": f"attachment; filename={files[0]}"})
+            return FileResponse(file_path, headers={"Content-Disposition": f"inline; filename={files[0]}"})
         else:
             return JSONResponse(content={"error": "Wrong code"}, status_code=400)
         
@@ -119,3 +153,8 @@ async def upload_file(password: SecretStr, file: UploadFile, matkul: Matkul):
 
     except Exception as e:
         return HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+@app.get("/encrypt/{plain}")
+async def encrypt(plain: str):
+    return number_string_to_letters(plain)
+
